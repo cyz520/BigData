@@ -1,17 +1,29 @@
 https://blog.csdn.net/cymvp/article/details/52090348
 
 YARN, MR History Server和Spark History Server三者的区别:
-今天听到有人说, "Yarn自带的History Server"如何如何之类的。看来还有很多人把history server当做是为YARN的应用提供服务的功能。
+    今天听到有人说, "Yarn自带的History Server"如何如何之类的。看来还有很多人把history server当做是为YARN的应用提供服务的功能。
 
-所以我想，还是有必要梳理一下YARN, YARN中的history server，以及spark的history server。
+    所以我想，还是有必要梳理一下YARN, MR中的history server，以及spark的history server。
+    
 
 YARN是一个通用的计算资源管理平台，它将计算资源抽象为container，分配给应用执行计算task。
 
-在YARN的发布包中，同时发布了MapReduce2，也就是可以运行在YARN上的移植版本。而YARN中的history server，其实是针对MR的，并非是针对YARN通用平台的服务。所以，针对这个history server的配置项，其实都是在mapred-site.xml中进行配置的。
+在YARN的发布包中，同时发布了MapReduce2，也就是可以运行在YARN上的移植版本。而YARN中的history server，其实是针对MR的，并非是针对YARN通用平台的服务。
+所以，针对这个history server的配置项，其实都是在mapred-site.xml中进行配置的。
 
 同样，Spark程序如果也想跑在YARN上，并且有自己的应用状态监控平台，那么Spark也就需要有自己的history server。
 
-为何YARN不能提供统一的history server, 而需要MR和Spark分别都有自己的history server呢? 这时因为，不同的计算模型，其计算task的模式是完全不同的, MR是分map和reduce的, Spark是分stage的, 完全不同，当然需要自己的history server。
+总结：
+  1、Yarn是没有History Server的，只是默认集成了MR的History Server。
+  2、如果Spark程序如果也想跑在YARN上，并且有自己的应用状态监控平台，那么Spark也就需要有自己的history server。
+
+
+为何YARN不能提供统一的history server, 而需要MR和Spark分别都有自己的history server呢? 
+这时因为，不同的计算模型，其计算task的模式是完全不同的, MR是分map和reduce的, Spark是分stage的, 完全不同，当然需要自己的history server。
+
+
+
+
 
 介绍一下如何启动Spark history server:
   1 配置:
@@ -32,6 +44,8 @@ YARN是一个通用的计算资源管理平台，它将计算资源抽象为cont
 上面说到, 虽然spark和MR的模型不同,都有自己的historyserver, 但是有一个是相通的,就是都是在YARN上运行, 每个container有统一的日志存放地址;
 
 YARN在这里做了一个容易让人混淆的事情,就是YARN把container日志查询和查看的方式,做到MR的historyserver中了.
+YARN在这里做了一个容易让人混淆的事情,就是YARN把container日志查询和查看的方式,做到MR的historyserver中了.
+YARN在这里做了一个容易让人混淆的事情,就是YARN把container日志查询和查看的方式,做到MR的historyserver中了.
 
 相当于是MR的historyserver提供了一个功能: 根据containerid或者applicationid,查询日志.
 
@@ -48,11 +62,16 @@ YARN在这里做了一个容易让人混淆的事情,就是YARN把container日�
 
 1 The logs are also available on the Spark Web UI under the Executors Tab. 
 
-2 You need to have both the Spark history server and the MapReduce history server running and configure yarn.log.server.url in yarn-site.xml properly. The log URL on the Spark history server UI will redirect you to the MapReduce history server to show the aggregated logs.
+2 You need to have both the Spark history server and the MapReduce history server running and configure yarn.log.server.url in yarn-site.xml properly. 
+The log URL on the Spark history server UI will redirect you to the MapReduce history server to show the aggregated logs.
 
 如果配置了上面的参数, 在Spark的history server中的"Executors"Tab页面, 可以帮你重定向到MapReduce history server中以及聚合的日志.
+总结:
+  如果Spark程序如果也想跑在YARN上，并且有自己的应用状态监控平台：需要 Spark history server、MapReduce history server、Yarn
 
-从源码上看, YARN中的代码是这样的(在NMController.java):
+
+PS:
+    从源码上看, YARN中的代码是这样的(在NMController.java):
     String logServerUrl = nmConf.get(YarnConfiguration.YARN_LOG_SERVER_URL);
     String redirectUrl = null;
     if (logServerUrl == null || logServerUrl.isEmpty()) {
